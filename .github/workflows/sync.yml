@@ -1,0 +1,18 @@
+name: sync
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone the repository
+        uses: actions/checkout@v3
+      - name: Set up Git user
+        uses: fregante/setup-git-user@v1
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+      - name: Check for new versions
+        run: python sync.py

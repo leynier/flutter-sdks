@@ -1,0 +1,19 @@
+name: main
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version (e.g: 1.0.0)"
+        required: true
+jobs:
+  main:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone the repository
+        uses: actions/checkout@v3
+      - name: Set up Git user
+        uses: fregante/setup-git-user@v1
+      - name: Set up Python
+        uses: actions/setup-python@v4
+      - name: Download Flutter SDK v${{ github.event.inputs.version }}
+        run: python main.py ${{ github.event.inputs.version }}
