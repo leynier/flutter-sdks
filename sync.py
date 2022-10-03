@@ -123,29 +123,19 @@ def sync() -> None:
     pcloud = PCloud.create_with_env()
     version = get_version_from_args()
     if not version:
-        if check_latest_version():
+        local_latest_version = get_local_latest_version()
+        version = get_remote_latest_version()
+        if local_latest_version == version:
             print("The latest version is downloaded")
             return
-        print(f"Downloading the latest version {get_remote_latest_version()}")
-        update_latest_version()
-        version = get_local_latest_version()
+        print(f"Downloading the latest version {version}")
     download_files(pcloud, version)
 
 
-def check_latest_version() -> bool:
-    # Check if the latest version is installed
-    local_latest_version = get_local_latest_version()
-    remote_latest_version = get_remote_latest_version()
-    return local_latest_version == remote_latest_version
-
-
-def update_latest_version() -> None:
-    # Update latest_version.txt
-    local_latest_version = get_local_latest_version()
-    remote_latest_version = get_remote_latest_version()
-    if local_latest_version != remote_latest_version:
-        with open("latest_version.txt", "w") as f:
-            f.write(remote_latest_version)
+def set_local_latest_version(version: str) -> None:
+    # Set the latest version in latest_version.txt
+    with open("latest_version.txt", "w") as f:
+        f.write(version)
 
 
 def get_local_latest_version() -> str:
@@ -231,6 +221,8 @@ def download_files(pcloud: PCloud, version: str) -> None:
     with open("README.md", "w") as f:
         f.writelines(lines)
     print("README.md updated.")
+
+    set_local_latest_version(version)
 
     print("Committing changes.")
     os.system("git add README.md")
