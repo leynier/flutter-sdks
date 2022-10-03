@@ -2,6 +2,11 @@ name: sync
 on:
   schedule:
     - cron: "0 */1 * * *"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version (e.g: 1.0.0)"
+        required: true
 jobs:
   sync:
     runs-on: ubuntu-latest
@@ -20,5 +25,9 @@ jobs:
         env:
           EMAIL: ${{ secrets.EMAIL }}
           PASSWORD: ${{ secrets.PASSWORD }}
-      - name: Check for new versions
+      - name: Run the script
+        if: github.event_name == 'workflow_dispatch'
+        run: python sync.py ${{ github.event.inputs.version }}
+      - name: Run the script
+        if: github.event_name == 'schedule'
         run: python sync.py
