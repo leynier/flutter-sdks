@@ -15,5 +15,12 @@ jobs:
         uses: fregante/setup-git-user@v1
       - name: Set up Python
         uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
       - name: Download Flutter SDK v${{ github.event.inputs.version }}
+        env:
+          EMAIL: ${{ secrets.EMAIL }}
+          PASSWORD: ${{ secrets.PASSWORD }}
         run: python main.py ${{ github.event.inputs.version }}
