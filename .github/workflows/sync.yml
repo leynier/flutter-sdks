@@ -10,6 +10,9 @@ on:
 jobs:
   sync:
     runs-on: ubuntu-latest
+    env:
+      EMAIL: ${{ secrets.EMAIL }}
+      PASSWORD: ${{ secrets.PASSWORD }}
     steps:
       - name: Clone the repository
         uses: actions/checkout@v3
@@ -22,12 +25,8 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
       - name: Download Flutter SDK v${{ github.event.inputs.version }}
-        env:
-          EMAIL: ${{ secrets.EMAIL }}
-          PASSWORD: ${{ secrets.PASSWORD }}
-      - name: Run the script
-        if: github.event_name == 'workflow_dispatch'
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         run: python sync.py ${{ github.event.inputs.version }}
-      - name: Run the script
-        if: github.event_name == 'schedule'
+      - name: Download latest Flutter SDK
+        if: ${{ github.event_name == 'schedule' }}
         run: python sync.py
