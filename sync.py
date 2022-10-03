@@ -1,11 +1,126 @@
 import os
 import sys
 
-from mega import Mega
+from requests import Response, Session
+
+
+class PCloud:
+    def __init__(self, username: str, password: str) -> None:
+        self.__session = Session()
+        self.__token = self.__get_token(username, password)
+
+    @staticmethod
+    def create_with_env() -> "PCloud":
+        username: str | None = None
+        password: str | None = None
+        if os.path.exists(".env"):
+            with open(".env") as f:
+                lines = f.readlines()
+                username_line = next(
+                    (line for line in lines if line.startswith("USERNAME=")),
+                    None,
+                )
+                password_line = next(
+                    (line for line in lines if line.startswith("PASSWORD=")),
+                    None,
+                )
+                if username_line:
+                    username = username_line.split("=")[1].strip()
+                if password_line:
+                    password = password_line.split("=")[1].strip()
+        username = username or os.environ.get("USERNAME")
+        password = password or os.environ.get("PASSWORD")
+        if not username or not password:
+            print(
+                "Please provide username and password of your PCloud account. \n"
+                + "You can set them in .env file or as environment variables."
+            )
+            sys.exit(1)
+        return PCloud(username, password)
+
+    @staticmethod
+    def ensure_result(response: Response) -> None:
+        response.raise_for_status()
+        json = response.json()
+        if json["result"] != 0:
+            raise Exception(f"Error: {json['error']}")
+
+    def __get_token(self, username: str, password: str) -> str:
+        response = self.__session.get(
+            "https://api.pcloud.com/userinfo",
+            params={
+                "getauth": 1,
+                "logout": 1,
+                "username": username,
+                "password": password,
+            },
+        )
+        PCloud.ensure_result(response)
+        return response.json()["auth"]
+
+    def find_file_id(self, filename) -> int:
+        response = self.__session.get(
+            "https://api.pcloud.com/listfolder",
+            params={
+                "auth": self.__token,
+                "folderid": 0,
+            },
+        )
+        PCloud.ensure_result(response)
+        json = response.json()
+        for file in json["metadata"]["contents"]:
+            if file["name"] == filename:
+                return int(file["fileid"])
+        raise Exception(f"File {filename} not found")
+
+    def delete_file(self, filename: str, permanently: bool = False) -> None:
+        file_id = self.find_file_id(filename)
+        response = self.__session.get(
+            "https://api.pcloud.com/deletefile",
+            params={
+                "auth": self.__token,
+                "fileid": file_id,
+            },
+        )
+        PCloud.ensure_result(response)
+        if not permanently:
+            return
+        file_id = int(response.json()["metadata"]["fileid"])
+        response = self.__session.get(
+            "https://api.pcloud.com/trash_clear",
+            params={
+                "auth": self.__token,
+                "fileid": file_id,
+            },
+        )
+        PCloud.ensure_result(response)
+
+    def upload_file(self, filename: str) -> str:
+        response = self.__session.post(
+            "https://api.pcloud.com/uploadfile",
+            params={
+                "auth": self.__token,
+                "nopartial": 1,
+            },
+            files=[(filename, open(filename, "rb"))],
+        )
+        PCloud.ensure_result(response)
+        file_id = [int(file_id) for file_id in response.json()["fileids"]][0]
+        response = self.__session.get(
+            "https://api.pcloud.com/getfilepublink",
+            params={
+                "auth": self.__token,
+                "fileid": file_id,
+            },
+        )
+        PCloud.ensure_result(response)
+        json = response.json()
+        code = json["code"]
+        return f"https://u.pcloud.link/publink/show?code={code}"
 
 
 def sync() -> None:
-    mega = get_mega_account()
+    pcloud = PCloud.create_with_env()
     version = get_version_from_args()
     if not version:
         if check_latest_version():
@@ -14,7 +129,7 @@ def sync() -> None:
         print(f"Downloading the latest version {get_remote_latest_version()}")
         update_latest_version()
         version = get_local_latest_version()
-    download_files(mega, version)
+    download_files(pcloud, version)
 
 
 def check_latest_version() -> bool:
@@ -66,36 +181,11 @@ def get_version_from_args() -> str | None:
             return version
 
 
-def get_mega_account() -> Mega:
-    email: str | None = None
-    password: str | None = None
-    if os.path.exists(".env"):
-        with open(".env") as f:
-            lines = f.readlines()
-            email_lines = (line for line in lines if line.startswith("EMAIL="))
-            email_line = next(email_lines, None)
-            password_lines = (line for line in lines if line.startswith("PASSWORD="))
-            password_line = next(password_lines, None)
-            if email_line:
-                email = email_line.split("=")[1].strip()
-            if password_line:
-                password = password_line.split("=")[1].strip()
-    email = email or os.environ.get("EMAIL")
-    password = password or os.environ.get("PASSWORD")
-    if not email or not password:
-        print("Please provide email and password of your mega account.", end=" ")
-        print("You can set them in .env file or as environment variables.")
-        sys.exit(1)
-    m = Mega()
-    m.login(email, password)
-    return m
-
-
-def download_files(mega: Mega, version: str) -> None:
-    linux_filename = "linux.tar.xz"
-    macos_filename = "macos.zip"
-    macos_arm64_filename = "macos_arm64.zip"
-    windows_filename = "windows.zip"
+def download_files(pcloud: PCloud, version: str) -> None:
+    linux_filename = "flutter_sdk_linux.tar.xz"
+    macos_filename = "flutter_sdk_macos.zip"
+    macos_arm64_filename = "flutter_sdk_macos_arm64.zip"
+    windows_filename = "flutter_sdk_windows.zip"
 
     linux_url = f"https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_{version}-stable.tar.xz"
     macos_url = f"https://storage.googleapis.com/flutter_infra_release/releases/stable/macos/flutter_macos_{version}-stable.zip"
@@ -111,22 +201,17 @@ def download_files(mega: Mega, version: str) -> None:
         os.system(f"wget {url} -O {filename}")
 
     for filename in filenames:
-        print(f"Deleting {filename} from Mega if exists.")
-        file = mega.find(filename, exclude_deleted=True)
-        if not file:
-            print(f"File {filename} not found on Mega.")
-            continue
-        file_link = mega.get_link(file)
-        mega.delete_url(file_link)
-        print(f"File {filename} deleted from Mega.")
+        print(f"Deleting {filename} from PCloud if exists.")
+        try:
+            pcloud.delete_file(filename, permanently=True)
+            print(f"File {filename} deleted from PCloud.")
+        except:
+            print(f"File {filename} not found in PCloud.")
 
     links: dict[str, str] = {}
     for filename in filenames:
-        print(f"Uploading {filename} to Mega.")
-        file = mega.upload(filename)
-        print(f"File {filename} uploaded to Mega.")
-        print(f"Getting link for {filename}.")
-        link = mega.get_upload_link(file)
+        print(f"Uploading {filename} to PCloud.")
+        link = pcloud.upload_file(filename)
         print(f"Link for {filename} is {link}.")
         links[filename] = link
 

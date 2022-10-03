@@ -1,5 +1,5 @@
 .env
-linux.tar.xz
-macos.zip
-macos_arm64.zip
-windows.zip
+flutter_sdk_linux.tar.xz
+flutter_sdk_macos.zip
+flutter_sdk_macos_arm64.zip
+flutter_sdk_windows.zip
