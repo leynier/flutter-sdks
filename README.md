@@ -2,7 +2,7 @@
 
 A repository to store the Flutter SDK of all platforms.
 
-- [Linux](https://u.pcloud.link/publink/show?code=XZsJsfVZcXJJuMgOXUpRV5fIsajEbjYPg627)
-- [MacOS](https://u.pcloud.link/publink/show?code=XZDJsfVZADJIWByiUsmTErBt5SY7LB6afmV7)
-- [MacOS (arm64)](https://u.pcloud.link/publink/show?code=XZOJsfVZNO12k0IBFCHULyvHfxK2ob4G71AV)
-- [Windows](https://u.pcloud.link/publink/show?code=XZ7FsfVZslhTAVYaOtY1kdlhvOOYnHfcO7Ay)
+- [Linux](https://u.pcloud.link/publink/show?code=XZwW9BVZ1T486Kl2H7zVANtB161IaYMJKx6X)
+- [MacOS](https://u.pcloud.link/publink/show?code=XZKW9BVZ7F0zcMNAwuFtasG9C1JEVYF6Qfoy)
+- [MacOS (arm64)](https://u.pcloud.link/publink/show?code=XZAW9BVZ3mjc5turjzS15E0Qi8zmrjgEpaRV)
+- [Windows](https://u.pcloud.link/publink/show?code=XZNW9BVZ1Wo45lI36v4Ln4NrAs31k4xeypbX)
