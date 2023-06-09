@@ -149,18 +149,18 @@ def get_remote_latest_version() -> str:
     flutter_repo_url = "https://github.com/flutter/flutter.git"
     tags = os.popen(f"git ls-remote --tags {flutter_repo_url}").read()
     # Get the latest version with format number.number.number
-    latest_version = ""
+    latest_version = [0, 0, 0]
     for tag in tags.split("\t"):
         if tag.startswith("refs/tags/"):
             version = tag.split("\n")[0][10:]
-            version_splited = version.split(".")
-            if (
-                len(version_splited) == 3
-                and all([x.isdigit() for x in version_splited])
-                and version > latest_version
-            ):
-                latest_version = version
-    return latest_version
+            version = version.split(".")
+            if len(version) != 3:
+                continue
+            if any((not x.isdigit() for x in version)):
+                continue
+            version = [int(x) for x in version]
+            latest_version = max(latest_version, version)
+    return ".".join([str(x) for x in latest_version])
 
 
 def get_version_from_args() -> str | None:
